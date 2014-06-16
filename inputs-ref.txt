@@ -1,0 +1,8 @@
+http://workflow.isi.edu/scratch/rynge/irri/ref/all.dict
+http://workflow.isi.edu/scratch/rynge/irri/ref/all.fa
+http://workflow.isi.edu/scratch/rynge/irri/ref/all.fa.amb
+http://workflow.isi.edu/scratch/rynge/irri/ref/all.fa.ann
+http://workflow.isi.edu/scratch/rynge/irri/ref/all.fa.bwt
+http://workflow.isi.edu/scratch/rynge/irri/ref/all.fa.fai
+http://workflow.isi.edu/scratch/rynge/irri/ref/all.fa.pac
+http://workflow.isi.edu/scratch/rynge/irri/ref/all.fa.sa

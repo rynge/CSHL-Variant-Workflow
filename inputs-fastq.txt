@@ -1,0 +1,2 @@
+gsiftp://gridftp.stampede.tacc.xsede.org/scratch/00963/ctjordan/irri/read1/T11073/Fq/AB03/AB03_111221_I596_FCD0HFCACXX_L4_RICwdsRSYHSD23-2-IPAAPEK-57_1.fq.gz
+gsiftp://gridftp.stampede.tacc.xsede.org/scratch/00963/ctjordan/irri/read1/T11073/Fq/AB03/AB03_111221_I596_FCD0HFCACXX_L4_RICwdsRSYHSD23-2-IPAAPEK-57_2.fq.gz
