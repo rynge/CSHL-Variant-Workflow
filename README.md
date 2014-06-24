@@ -4,7 +4,7 @@ IRRI-Workflow
 Note that the Git repository does not include the software required for
 the jobs. For now, grab the software tarball from
 http://www.isi.edu/~rynge/soybean/software.tar.gz . Untar it in the 
-top level directory.
+cloned workflow directory.
 
 The workflow is controlled by a configuration file named
 ~/.irri-workflow.conf . Create the file with this content:
@@ -61,15 +61,6 @@ irodsUserName YOUR_IRODS_USERNAME
 irodsZone iplant
 # Pegasus requirement
 irodspassword 'YOUR_IRODS_PASSWORD'
-```
-
-Note that the Git repository does not include the software required for the
-jobs. For now, grab the software tarball and untar it in the top level
-workflow directory.
-
-```
-$ wget http://www.isi.edu/~rynge/soybean/software.tar.gz
-$ tar xzf software.tar.gz
 ```
 
 To run on TACC, you need a X509 proxy. Create one with:
