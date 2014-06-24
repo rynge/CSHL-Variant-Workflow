@@ -44,10 +44,10 @@ submit host as a cloud instance in for example Atmosphere. A workflow
 needs an ssh key:
 
 ```
-mkdir -p ~/.ssh
-ssh-keygen -t rsa -b 2048 -f ~/.ssh/workflow
-     (just hit enter when asked for a passphrase)
-cat ~/workflow.pub >>~/.ssh/authorized_keys 
+$ mkdir -p ~/.ssh
+$ ssh-keygen -t rsa -b 2048 -f ~/.ssh/workflow
+            (just hit enter when asked for a passphrase)
+$ cat ~/workflow.pub >>~/.ssh/authorized_keys 
 ```
 
 To access data from the iPlant iRods repository, you need a file in your
@@ -63,17 +63,32 @@ irodsZone iplant
 irodspassword 'YOUR_IRODS_PASSWORD'
 ```
 
+Note that the Git repository does not include the software required for the
+jobs. For now, grab the software tarball and untar it in the top level
+workflow directory.
+
+```
+$ wget http://www.isi.edu/~rynge/soybean/software.tar.gz
+$ tar xzf software.tar.gz
+```
+
 To run on TACC, you need a X509 proxy. Create one with:
 
-    myproxy-logon -s myproxy.teragrid.org -t 144:00 -l YOUR_XSEDE_USERNAME
+```
+$ myproxy-logon -s myproxy.teragrid.org -t 144:00 -l YOUR_XSEDE_USERNAME
+```
 
 To generate the workflow:
 
-    ./workflow-generator --exec-env tacc-stampede
+```
+$ ./workflow-generator --exec-env tacc-stampede
+```
 
 The workflow can also run in a distributed mode, using HTCondor to schedule
 the jobs. Currently, the configuration is for the ISI submit node, and the
 workflow can be generated with:
 
-    ./workflow-generator --exec-env distributed
+```
+$ ./workflow-generator --exec-env distributed
+```
 
