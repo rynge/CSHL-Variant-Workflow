@@ -6,7 +6,6 @@ if [ ! -d software ]; then
     tar xzf software.tar.gz
 fi
 
-ARGS=`echo "$@" | sed 's/_TAB_/\\\t/g'`
-
-./software/bwa-0.7.4/bwa $ARGS
+#./software/samtools-0.1.19/samtools "$@"
+./software/samtools-1.0/samtools "$@"
 
