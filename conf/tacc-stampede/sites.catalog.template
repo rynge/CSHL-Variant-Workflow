@@ -23,8 +23,8 @@
         <profile namespace="globus" key="project">$tacc_allocation</profile>
     </site>
     <site  handle="irods_iplant" arch="x86_64" os="LINUX">
-        <directory type="local-storage" path="/iplant/home/shared/digbio/Pegasus_GATK_Results/Output_DIR/$username">
-            <file-server operation="all" url="irods:///iplant/home/shared/digbio/Pegasus_GATK_Results/Output_DIR/$username" />
+        <directory type="local-storage" path="/iplant/home/shared/rice3k/workflow-outputs/$username">
+            <file-server operation="all" url="irods:///iplant/home/shared/rice3k/workflow-outputs//$username" />
         </directory>
         <profile namespace="pegasus" key="irodsEnvFile" >$home/irods.iplant.env</profile>
     </site>

@@ -457,7 +457,7 @@ def merge_and_genotype(dax, software_tar, ref_files, wf_files, read_ids):
         wf_files[fname + ".bam"] =  out_bam
         out_index = File(fname + ".bam.bai")
         wf_files[fname + ".bai"] =  out_index
-        j.uses(out_bam, link=Link.OUTPUT, transfer=True)
+        j.uses(out_bam, link=Link.OUTPUT, transfer=False)
         j.addArguments(out_bam)
         
         # inputs
@@ -478,8 +478,23 @@ def merge_and_genotype(dax, software_tar, ref_files, wf_files, read_ids):
         j.addArguments(out_bam)
         j.uses(software_tar, link=Link.INPUT)
         j.uses(out_bam, link=Link.INPUT)
-        j.uses(out_index, link=Link.OUTPUT, transfer=True)
-    
+        j.uses(out_index, link=Link.OUTPUT, transfer=False)
+        dax.addJob(j)
+
+        # and then cram it to get the final output file
+        out_cram = File(conf.get("local", "run_id") + "-" + sample + ".cram")
+        add_executable(dax, "cram", "cram-wrapper")
+        j = ComputeJob("cram", cores = 1, mem_gb = 3, partition = "part2")
+        j.addArguments("cram")
+        j.addArguments("--input-bam-file", out_bam)
+        j.addArguments("--reference-fasta-file", extract_fasta_basefile(ref_files))
+        j.addArguments("--output-cram-file", out_cram)
+        j.uses(software_tar, link=Link.INPUT)
+        for f in ref_files:
+            j.uses(f, link=Link.INPUT)
+        j.uses(out_bam, link=Link.INPUT)
+        j.uses(out_index, link=Link.INPUT)
+        j.uses(out_cram, link=Link.OUTPUT, transfer=True)
         dax.addJob(j)
         
         for i in range(1, 13):
@@ -505,7 +520,7 @@ def haplotype_caller(dax, software_file, ref_files, wf_files,
     # outputs
     fname = conf.get("local", "run_id") + "-" + sample_id + "_" + chromosome + ".vcf"
     wf_files[fname] = File(fname)
-    j.uses(wf_files[fname], link=Link.OUTPUT, transfer=True)
+    j.uses(wf_files[fname], link=Link.OUTPUT, transfer=False)
     wf_files[fname + ".idx"] = File(fname + ".idx")
     j.uses(wf_files[fname + ".idx"], link=Link.OUTPUT, transfer=True)
     
@@ -517,6 +532,15 @@ def haplotype_caller(dax, software_file, ref_files, wf_files,
                    "-R", extract_fasta_basefile(ref_files),
                    "-I", wf_files[conf.get("local", "run_id") + "-" + sample_id + ".bam"],
                    "-o", wf_files[fname])
+    dax.addJob(j)
+
+    # gzip the result to save space
+    fgzip = File(fname + ".gz")
+    add_executable(dax, "gzip", "gzip-wrapper")
+    j = ComputeJob("gzip", cores = 1, mem_gb = 1, partition = "part2")
+    j.addArguments(wf_files[fname], fgzip)
+    j.uses(wf_files[fname], link=Link.INPUT)
+    j.uses(fgzip, link=Link.OUTPUT, transfer=True)
     dax.addJob(j)
 
 
@@ -669,11 +693,6 @@ def main():
         logger.fatal("Work directory already exists") 
         os.exit(1)
     os.makedirs(conf.get("local", "work_dir"))
-
-    # tar up the software
-    logger.info("Tarring up software directory to send with jobs")
-    myexec("tar czf " + conf.get("local", "work_dir") + \
-           "/software.tar.gz software")
 
     generate_site_catalog()
 

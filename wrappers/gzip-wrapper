@@ -1,0 +1,7 @@
+#!/bin/bash
+
+set -e
+
+gzip -c $1 > $2
+
+
