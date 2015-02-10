@@ -697,6 +697,8 @@ def main():
     generate_site_catalog()
 
     # FIXME: what should we copy / keep in the top dir?
+    myexec("cp software.tar.gz " + \
+            conf.get("local", "work_dir") + "/software.tar.gz")
     myexec("cp conf/" + conf.get("local", "exec_env") + 
            "/transformations.catalog " + 
            conf.get("local", "work_dir") + "/transformations.catalog")
