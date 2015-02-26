@@ -4,7 +4,8 @@ if [ ! -d software ]; then
     tar xzf software.tar.gz
 fi
 
-export TMPDIR=`pwd`
+mkdir -p tmp
+export TMPDIR=`pwd`/tmp
 
 OUTFILE=`mktemp -t gatk-output.XXXXXXXXXX` || exit 1
 
