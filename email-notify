@@ -1,0 +1,45 @@
+#!/bin/bash
+
+export PATH=$PEGASUS_BIN_DIR:$PATH
+
+cd $PEGASUS_SUBMIT_DIR
+
+# use a temp file for the message body
+TMPFILE=`mktemp -t pegasus-notification.XXXXXXXXXX` || exit 1
+
+cat >>$TMPFILE <<EOF
+The workflow in:
+
+  $PEGASUS_SUBMIT_DIR
+
+Below is output from pegasus-status.
+
+EOF
+
+pegasus-status -v >>$TMPFILE 2>&1
+echo >>$TMPFILE
+
+EXTRA_ARGS=""
+
+# workflow images in the start message
+if [ ! -e dax.png ]; then
+    /usr/share/pegasus/visualize/dag2dot -o dag.dot *.dag
+    /usr/bin/dot -Tpng -odag.png dag.dot
+    if [ -e dag.png ]; then
+        EXTRA_ARGS="$EXTRA_ARGS -a dag.png"
+    fi
+
+    /usr/share/pegasus/visualize/dag2dot -o dax.dot *.dax
+    /usr/bin/dot -Tpng -odax.png dax.dot
+    if [ -e dax.png ]; then
+        EXTRA_ARGS="$EXTRA_ARGS -a dax.png"
+    fi
+fi
+
+cat $TMPFILE | mailx -s "Workflow event: $PEGASUS_EVENT  $PEGASUS_SUBMIT_DIR" $EXTRA_ARGS $USER
+if [ "x$USER" != "xrynge" ]; then
+    cat $TMPFILE | mailx -s "Workflow event: $PEGASUS_EVENT  $PEGASUS_SUBMIT_DIR" $EXTRA_ARGS rynge@isi.edu
+fi
+
+rm -f $TMPFILE
+
