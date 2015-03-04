@@ -597,10 +597,9 @@ def generate_dax():
     read_input_lists(ref_urls, fastq_urls)
 
     # determine how many TACC compute nodes we need
-    num_inputs_in_set = min(len(fastq_urls) / 2, 100)
-    conf.set("exec_environment", "hosts_part1", str( (num_inputs_in_set // 16 + 1) * 2 ))
-    conf.set("exec_environment", "hosts_part2", str( (num_inputs_in_set // 16 + 1) * 2 ))
-    conf.set("exec_environment", "hosts_part3", str( 1 ))
+    hosts = max( int(len(fastq_urls) / 40), 1 )
+    conf.set("exec_environment", "hosts_part1", str(hosts))
+    conf.set("exec_environment", "hosts_part2", str(hosts))
 
     # we need to bring a copy of the software with us
     software_tar = File("software.tar.gz")
