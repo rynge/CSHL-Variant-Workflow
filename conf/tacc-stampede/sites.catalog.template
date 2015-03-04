@@ -11,7 +11,7 @@
         <profile namespace="pegasus" key="SSH_PRIVATE_KEY">$home/.ssh/workflow</profile>
     </site>
     <site  handle="execution" arch="x86_64" os="LINUX">
-        <grid  type="gt5" contact="login5.stampede.tacc.utexas.edu:2119/jobmanager-slurm" scheduler="Fork" jobtype="auxillary"/>
+        <grid  type="gt5" contact="login5.stampede.tacc.utexas.edu:2119/jobmanager-fork" scheduler="Fork" jobtype="auxillary"/>
         <grid  type="gt5" contact="login5.stampede.tacc.utexas.edu:2119/jobmanager-slurm" scheduler="Condor" jobtype="compute"/>
         <directory type="shared-scratch" path="/scratch/$tacc_storage_group/$tacc_username/workflow-runs">
             <file-server operation="all" url="gsiftp://gridftp.stampede.tacc.xsede.org:2811/scratch/$tacc_storage_group/$tacc_username/workflow-runs"/>
