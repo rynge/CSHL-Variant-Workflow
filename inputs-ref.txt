@@ -1,8 +1,9 @@
-http://workflow.isi.edu/scratch/rynge/irri/ref/all.dict
-http://workflow.isi.edu/scratch/rynge/irri/ref/all.fa
-http://workflow.isi.edu/scratch/rynge/irri/ref/all.fa.amb
-http://workflow.isi.edu/scratch/rynge/irri/ref/all.fa.ann
-http://workflow.isi.edu/scratch/rynge/irri/ref/all.fa.bwt
-http://workflow.isi.edu/scratch/rynge/irri/ref/all.fa.fai
-http://workflow.isi.edu/scratch/rynge/irri/ref/all.fa.pac
-http://workflow.isi.edu/scratch/rynge/irri/ref/all.fa.sa
+irods://taccCorralRes/iplant/home/lwang/data/rice/genome/ricen.dict
+irods://taccCorralRes/iplant/home/lwang/data/rice/genome/ricen.fa
+irods://taccCorralRes/iplant/home/lwang/data/rice/genome/ricen.fa.amb
+irods://taccCorralRes/iplant/home/lwang/data/rice/genome/ricen.fa.ann
+irods://taccCorralRes/iplant/home/lwang/data/rice/genome/ricen.fa.bwt
+irods://taccCorralRes/iplant/home/lwang/data/rice/genome/ricen.fa.fai
+irods://taccCorralRes/iplant/home/lwang/data/rice/genome/ricen.fa.pac
+irods://taccCorralRes/iplant/home/lwang/data/rice/genome/ricen.fa.sa
+
