@@ -478,6 +478,8 @@ def indel_realign(read_id, dax, software_tar, ref_files, wf_files):
     j.addArguments("-T", "IndelRealigner",
                    "-R", extract_fasta_basefile(ref_files),
                    "-I", wf_files['deduped_reads'],
+                   "--filter_mismatching_base_and_quals",
+                   "--filter_bases_not_stored",
                    "-targetIntervals", wf_files['intervals'],
                    "-o", wf_files['indel_realigned_reads'])
     dax.addJob(j)
