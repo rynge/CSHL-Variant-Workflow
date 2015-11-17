@@ -8,5 +8,5 @@ fi
 
 ARGS=`echo "$@" | sed 's/_TAB_/\\\t/g'`
 
-./software/bwa-0.7.4/bwa $ARGS
+./software/bwa-0.7.12/bwa $ARGS
 
