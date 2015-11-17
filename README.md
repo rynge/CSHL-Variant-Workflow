@@ -1,10 +1,10 @@
 CSHL-Variant-Workflow
 =============
 software.tar.gz contains
-            bwa-0.7.12
-            GenomeAnalysisTK-3.4.46
-            picard-tools-1.119
-            samtools-1.2
+            bwa-0.7.12,
+            GenomeAnalysisTK-3.4.46,
+            picard-tools-1.119,
+            samtools-1.2,
             seqtk
 
 The workflow is controlled by a configuration file named
