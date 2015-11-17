@@ -35,7 +35,7 @@ allocation = TG-BIO123456
 
 username = TACC_username
 
-storage_group = 01308
+storage_group = 00384
 
 ```
 
