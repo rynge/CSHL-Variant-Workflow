@@ -31,9 +31,9 @@ irods_bin = /ccg/software/irods/3.2/bin
 # last level.
 [tacc]
 
-allocation = TG-BIO150041
+allocation = TG-BIO123456
 
-username = lwang
+username = TACC_username
 
 storage_group = 01308
 
