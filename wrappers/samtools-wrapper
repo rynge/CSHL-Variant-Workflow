@@ -13,5 +13,5 @@ if [ "X$1" = "Xmerge" -a "X$4" = "X" ]; then
     exit 0
 fi
 
-./software/samtools-1.0/samtools "$@"
+./software/samtools-1.2/samtools "$@"
 
