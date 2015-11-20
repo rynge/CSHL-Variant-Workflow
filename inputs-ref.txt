@@ -1,9 +1,9 @@
-irods://taccCorralRes/iplant/home/lwang/data/rice/genome/ricen.dict
-irods://taccCorralRes/iplant/home/lwang/data/rice/genome/ricen.fa
-irods://taccCorralRes/iplant/home/lwang/data/rice/genome/ricen.fa.amb
-irods://taccCorralRes/iplant/home/lwang/data/rice/genome/ricen.fa.ann
-irods://taccCorralRes/iplant/home/lwang/data/rice/genome/ricen.fa.bwt
-irods://taccCorralRes/iplant/home/lwang/data/rice/genome/ricen.fa.fai
-irods://taccCorralRes/iplant/home/lwang/data/rice/genome/ricen.fa.pac
-irods://taccCorralRes/iplant/home/lwang/data/rice/genome/ricen.fa.sa
+irods:///iplant/home/lwang/data/rice/genome/sativa/ricen.dict
+irods:///iplant/home/lwang/data/rice/genome/sativa/ricen.fa
+irods:///iplant/home/lwang/data/rice/genome/sativa/ricen.fa.amb
+irods:///iplant/home/lwang/data/rice/genome/sativa/ricen.fa.ann
+irods:///iplant/home/lwang/data/rice/genome/sativa/ricen.fa.bwt
+irods:///iplant/home/lwang/data/rice/genome/sativa/ricen.fa.fai
+irods:///iplant/home/lwang/data/rice/genome/sativa/ricen.fa.pac
+irods:///iplant/home/lwang/data/rice/genome/sativa/ricen.fa.sa
 
