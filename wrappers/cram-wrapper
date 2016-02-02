@@ -1,0 +1,26 @@
+#!/bin/bash
+
+set -e
+
+if [ ! -d software ]; then
+    tar xzf software.tar.gz
+fi
+
+if [ "x$TMPDIR_OVERRIDE" != "x" ]; then
+   export TMPDIR="$TMPDIR_OVERRIDE"
+fi
+if [ "x$TMPDIR" = "x" ]; then
+   export TMPDIR=/tmp
+fi
+if [ ! -e "$TMPDIR" ]; then
+    mkdir -p $TMPDIR
+fi
+
+export PATH=`pwd`/software/samtools-1.2:$PATH
+
+INPUT=$1
+REF=$2
+OUTPUT=$3
+
+samtools view -T $REF -C $INPUT > $OUTPUT
+

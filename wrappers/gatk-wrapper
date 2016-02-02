@@ -1,11 +1,19 @@
 #!/bin/bash
+
 version="3.4.46"
 if [ ! -d software ]; then
     tar xzf software.tar.gz
 fi
 
-mkdir -p tmp
-export TMPDIR=`pwd`/tmp
+if [ "x$TMPDIR_OVERRIDE" != "x" ]; then
+   export TMPDIR="$TMPDIR_OVERRIDE"
+fi
+if [ "x$TMPDIR" = "x" ]; then
+   export TMPDIR=/tmp
+fi
+if [ ! -e "$TMPDIR" ]; then
+    mkdir -p $TMPDIR
+fi
 
 OUTFILE=`mktemp -t gatk-output.XXXXXXXXXX` || exit 1
 

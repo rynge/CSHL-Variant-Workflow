@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -e
+
+if [ ! -d software ]; then
+    tar xzf software.tar.gz
+fi
+
+export PATH=`pwd`/software/samtools-1.2:$PATH
+
+INPUT=$1
+OUTPUT=$2
+
+samtools view -h -b -f 0x02 $INPUT | samtools view -h -b -q 20 - > $OUTPUT
+
