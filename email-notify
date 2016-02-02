@@ -23,13 +23,13 @@ EXTRA_ARGS=""
 
 # workflow images in the start message
 if [ ! -e dax.png ]; then
-    /usr/share/pegasus/visualize/dag2dot -o dag.dot *.dag
+    pegasus-graphviz -o dag.dot *.dag
     /usr/bin/dot -Tpng -odag.png dag.dot
     if [ -e dag.png ]; then
         EXTRA_ARGS="$EXTRA_ARGS -a dag.png"
     fi
 
-    /usr/share/pegasus/visualize/dag2dot -o dax.dot *.dax
+    pegasus-graphviz -o dax.dot *.dax
     /usr/bin/dot -Tpng -odax.png dax.dot
     if [ -e dax.png ]; then
         EXTRA_ARGS="$EXTRA_ARGS -a dax.png"

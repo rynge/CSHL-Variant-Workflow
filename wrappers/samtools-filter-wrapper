@@ -11,5 +11,5 @@ export PATH=`pwd`/software/samtools-1.2:$PATH
 INPUT=$1
 OUTPUT=$2
 
-samtools view -h -b -f 0x02 $INPUT | samtools view -h -b -q 30 - > $OUTPUT
+samtools view -h -b -f 0x02 $INPUT | samtools view -h -b -q 20 - > $OUTPUT
 
