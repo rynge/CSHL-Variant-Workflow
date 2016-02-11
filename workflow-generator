@@ -322,7 +322,7 @@ def check_inputs(read_id, dax, software_tar, ref_files, wf_files, software_job):
 def seqtk(read_id, dax, software_tar, ref_files, wf_files, check_inputs_job):
 
     add_executable(dax, "seqtk", "seqtk-wrapper")
-    j = ComputeJob("seqtk", cores = 1, mem_gb = 2, partition = "part2")
+    j = ComputeJob("seqtk", cores = 1, mem_gb = 2, partition = "part1")
     j.uses(software_tar, link=Link.INPUT)
     j.uses(wf_files['paired_read1_fastq'], link=Link.INPUT)
     j.uses(wf_files['paired_read1_fastq_postseqtk'], link=Link.OUTPUT, transfer=False)
@@ -332,7 +332,7 @@ def seqtk(read_id, dax, software_tar, ref_files, wf_files, check_inputs_job):
     dax.depends(parent=check_inputs_job, child=j)
     
     add_executable(dax, "seqtk", "seqtk-wrapper")
-    j = ComputeJob("seqtk", cores = 1, mem_gb = 2, partition = "part2")
+    j = ComputeJob("seqtk", cores = 1, mem_gb = 2, partition = "part1")
     j.uses(software_tar, link=Link.INPUT)
     j.uses(wf_files['paired_read2_fastq'], link=Link.INPUT)
     j.uses(wf_files['paired_read2_fastq_postseqtk'], link=Link.OUTPUT, transfer=False)
@@ -356,7 +356,7 @@ def alignment_to_reference(read_id, dax, software_tar, ref_files, wf_files):
     # of the time.
     add_executable(dax, "alignment_to_reference", "bwa-wrapper")
     j = ComputeJob("alignment_to_reference", cores = 7, mem_gb = 8,
-                   partition = "part2")
+                   partition = "part1")
 
     # build the filter command line argument based on information encoded
     # in the file name
@@ -395,7 +395,7 @@ def sort_sam(read_id, dax, software_tar, ref_files, wf_files):
 
     add_executable(dax, "sort_sam", "picard-wrapper")
     j = ComputeJob("sort_sam", cores = 1, mem_gb = 23, 
-                   partition = "part2")
+                   partition = "part1")
     j.uses(software_tar, link=Link.INPUT)
     j.uses(wf_files['sam'], link=Link.INPUT)
     j.uses(wf_files['sorted_reads'], link=Link.OUTPUT, transfer=False)
@@ -428,7 +428,7 @@ def merge(dax, software_tar, ref_files, wf_files, read_ids):
         fname = conf.get("local", "run_id") + "-" + sample
 
         add_executable(dax, "merge", "samtools-wrapper")
-        j = ComputeJob("merge", cores = 1, mem_gb = 5, partition = "part3")
+        j = ComputeJob("merge", cores = 1, mem_gb = 5, partition = "part2")
         j.addArguments("merge")
         
         # outputs - only the bam files gets generated here, the index
@@ -543,7 +543,7 @@ def filter(dax, software_tar, ref_files, wf_files, sample_id, base_fname):
 
     # filter
     add_executable(dax, "filter", "samtools-filter-wrapper")
-    j = ComputeJob("filter", cores = 1, mem_gb = 5, partition = "part3")
+    j = ComputeJob("filter", cores = 1, mem_gb = 5, partition = "part2")
     filtered_bam = File(base_fname + ".paired.q20.bam")
     wf_files[filtered_bam.name] = filtered_bam
     j.addArguments(wf_files[base_fname + "_indel_realigned.bam"], filtered_bam)
@@ -556,7 +556,7 @@ def filter(dax, software_tar, ref_files, wf_files, sample_id, base_fname):
     filtered_index = File(base_fname + ".paired.q20.bam.bai")
     wf_files[base_fname + ".paired.q20.bam.bai"] =  filtered_index
     add_executable(dax, "filtered_index", "samtools-wrapper")
-    j = ComputeJob("filtered_index", cores = 1, mem_gb = 5, partition = "part3")
+    j = ComputeJob("filtered_index", cores = 1, mem_gb = 5, partition = "part2")
     j.addArguments("index")
     j.addArguments(filtered_bam)
     j.uses(software_tar, link=Link.INPUT)
@@ -568,7 +568,7 @@ def filter(dax, software_tar, ref_files, wf_files, sample_id, base_fname):
     filtered_cram = File(base_fname + ".paired.q20.cram")
     wf_files[filtered_cram.name] = filtered_cram
     add_executable(dax, "cram", "cram-wrapper")
-    j = ComputeJob("cram", cores = 1, mem_gb = 3, partition = "part3")
+    j = ComputeJob("cram", cores = 1, mem_gb = 3, partition = "part2")
     j.addArguments(filtered_bam, extract_fasta_basefile(ref_files), filtered_cram)
     j.uses(software_tar, link=Link.INPUT)
     for f in ref_files:
@@ -650,7 +650,7 @@ def generate_dax():
 
     # determine how many TACC compute nodes we need
     hosts = max( int(len(fastq_urls) / 40), 1 )
-    conf.set("exec_environment", "hosts_part1", str(1))
+    conf.set("exec_environment", "hosts_part1", str(hosts))
     conf.set("exec_environment", "hosts_part2", str(hosts))
     conf.set("exec_environment", "hosts_part3", str(hosts))
 
