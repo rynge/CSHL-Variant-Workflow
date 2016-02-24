@@ -30,6 +30,7 @@ os.sys.path.insert(0, lib_dir)
 
 logger      = logging.getLogger("my_logger")
 conf        = None
+debug       = False
 added_execs = []
 
 
@@ -372,7 +373,7 @@ def alignment_to_reference(read_id, dax, software_tar, ref_files, wf_files):
     j.uses(software_tar, link=Link.INPUT)
     j.uses(wf_files['paired_read1_fastq_postseqtk'], link=Link.INPUT)
     j.uses(wf_files['paired_read2_fastq_postseqtk'], link=Link.INPUT)
-    j.uses(wf_files['sam'], link=Link.OUTPUT, transfer=False)
+    j.uses(wf_files['sam'], link=Link.OUTPUT, transfer=debug)
     
     j.setStdout(wf_files['sam'])
     
@@ -398,8 +399,8 @@ def sort_sam(read_id, dax, software_tar, ref_files, wf_files):
                    partition = "part1")
     j.uses(software_tar, link=Link.INPUT)
     j.uses(wf_files['sam'], link=Link.INPUT)
-    j.uses(wf_files['sorted_reads'], link=Link.OUTPUT, transfer=False)
-    j.uses(wf_files['sorted_index'], link=Link.OUTPUT, transfer=False)
+    j.uses(wf_files['sorted_reads'], link=Link.OUTPUT, transfer=debug)
+    j.uses(wf_files['sorted_index'], link=Link.OUTPUT, transfer=debug)
     
     j.addArguments("SortSam.jar",
                    "CREATE_INDEX=TRUE",
@@ -435,7 +436,7 @@ def merge(dax, software_tar, ref_files, wf_files, read_ids):
         # is generated in the next job
         merged_bam = File(fname + ".bam")
         wf_files[fname + ".bam"] =  merged_bam
-        j.uses(merged_bam, link=Link.OUTPUT, transfer=False)
+        j.uses(merged_bam, link=Link.OUTPUT, transfer=debug)
         j.addArguments(merged_bam)
         
         # inputs
@@ -465,9 +466,9 @@ def dedup(dax, software_tar, ref_files, wf_files, sample_id, base_fname):
     j.uses(software_tar, link=Link.INPUT)
     j.uses(wf_files[base_fname + ".bam"], link=Link.INPUT)
     #j.uses(wf_files[base_fname + "_sorted_reads.bai"], link=Link.INPUT)
-    j.uses(wf_files[base_fname + ".deduped.bam"], link=Link.OUTPUT, transfer=False)
-    j.uses(wf_files[base_fname + ".deduped.bai"], link=Link.OUTPUT, transfer=False)
-    j.uses(wf_files[base_fname + ".deduped.metrics"], link=Link.OUTPUT, transfer=False)
+    j.uses(wf_files[base_fname + ".deduped.bam"], link=Link.OUTPUT, transfer=debug)
+    j.uses(wf_files[base_fname + ".deduped.bai"], link=Link.OUTPUT, transfer=debug)
+    j.uses(wf_files[base_fname + ".deduped.metrics"], link=Link.OUTPUT, transfer=debug)
     
     j.addArguments("MarkDuplicates.jar",
                    "CREATE_INDEX=TRUE",
@@ -496,7 +497,7 @@ def realign_target_creator(dax, software_tar, ref_files, wf_files, sample_id, ba
         j.uses(f, link=Link.INPUT)
     j.uses(wf_files[base_fname + ".deduped.bam"], link=Link.INPUT)
     j.uses(wf_files[base_fname + ".deduped.bai"], link=Link.INPUT)
-    j.uses(wf_files[base_fname + "_intervals.list"], link=Link.OUTPUT, transfer=False)
+    j.uses(wf_files[base_fname + "_intervals.list"], link=Link.OUTPUT, transfer=debug)
     
     j.addArguments("-T", "RealignerTargetCreator",
                    "-nt", "15",
@@ -524,8 +525,8 @@ def indel_realign(dax, software_tar, ref_files, wf_files, sample_id, base_fname)
     j.uses(wf_files[base_fname + ".deduped.bam"], link=Link.INPUT)
     j.uses(wf_files[base_fname + ".deduped.bai"], link=Link.INPUT)
     j.uses(wf_files[base_fname + "_intervals.list"], link=Link.INPUT)
-    j.uses(wf_files[base_fname + "_indel_realigned.bam"], link=Link.OUTPUT, transfer=True)
-    j.uses(wf_files[base_fname + "_indel_realigned.bai"], link=Link.OUTPUT, transfer=True)
+    j.uses(wf_files[base_fname + "_indel_realigned.bam"], link=Link.OUTPUT, transfer=debug)
+    j.uses(wf_files[base_fname + "_indel_realigned.bai"], link=Link.OUTPUT, transfer=debug)
     
     j.addArguments("-T", "IndelRealigner",
                    "-R", extract_fasta_basefile(ref_files),
@@ -549,7 +550,7 @@ def filter(dax, software_tar, ref_files, wf_files, sample_id, base_fname):
     j.addArguments(wf_files[base_fname + "_indel_realigned.bam"], filtered_bam)
     j.uses(software_tar, link=Link.INPUT)
     j.uses(wf_files[base_fname + "_indel_realigned.bam"], link=Link.INPUT)
-    j.uses(filtered_bam, link=Link.OUTPUT, transfer=False)
+    j.uses(filtered_bam, link=Link.OUTPUT, transfer=debug)
     dax.addJob(j)
     
     # we also need to index the filtered bam
@@ -561,7 +562,7 @@ def filter(dax, software_tar, ref_files, wf_files, sample_id, base_fname):
     j.addArguments(filtered_bam)
     j.uses(software_tar, link=Link.INPUT)
     j.uses(filtered_bam, link=Link.INPUT)
-    j.uses(filtered_index, link=Link.OUTPUT, transfer=False)
+    j.uses(filtered_index, link=Link.OUTPUT, transfer=debug)
     dax.addJob(j)
 
     # and then cram it to get the final output file
@@ -602,7 +603,7 @@ def haplotype_caller(dax, software_file, ref_files, wf_files,
     # outputs
     fname = conf.get("local", "run_id") + "-" + sample_id + "_" + chromosome + ".vcf"
     wf_files[fname] = File(fname)
-    j.uses(wf_files[fname], link=Link.OUTPUT, transfer=False)
+    j.uses(wf_files[fname], link=Link.OUTPUT, transfer=debug)
     wf_files[fname + ".idx"] = File(fname + ".idx")
     j.uses(wf_files[fname + ".idx"], link=Link.OUTPUT, transfer=True)
     
@@ -726,6 +727,7 @@ def generate_dax():
 
 def main():
     global conf
+    global debug
     
     setup_logger(False)
 
@@ -735,12 +737,16 @@ def main():
 
     parser.add_option("-e", "--exec-env", action = "store", dest = "exec_env",
                       help = "Handle for the target execution environment.")
+    parser.add_option("-d", "--debug", action = "store_true", dest = "debug",
+                      help = "Run the workflow in debug mode. Intermediate products will be staged to output site.")
 
     # Parse command line options
     (options, args) = parser.parse_args()
     if options.exec_env == None:
         logger.fatal("Please specify an execution environment with --exec-env")
         sys.exit(1)
+
+    debug = options.debug
 
     # read the config file and add those settings to the option object
     conf = ConfigParser.SafeConfigParser({'username': getpass.getuser()})
