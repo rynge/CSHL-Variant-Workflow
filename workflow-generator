@@ -550,7 +550,7 @@ def filter(dax, software_tar, ref_files, wf_files, sample_id, base_fname):
     j.addArguments(wf_files[base_fname + "_indel_realigned.bam"], filtered_bam)
     j.uses(software_tar, link=Link.INPUT)
     j.uses(wf_files[base_fname + "_indel_realigned.bam"], link=Link.INPUT)
-    j.uses(filtered_bam, link=Link.OUTPUT, transfer=debug)
+    j.uses(filtered_bam, link=Link.OUTPUT, transfer=True)
     dax.addJob(j)
     
     # we also need to index the filtered bam
@@ -562,7 +562,7 @@ def filter(dax, software_tar, ref_files, wf_files, sample_id, base_fname):
     j.addArguments(filtered_bam)
     j.uses(software_tar, link=Link.INPUT)
     j.uses(filtered_bam, link=Link.INPUT)
-    j.uses(filtered_index, link=Link.OUTPUT, transfer=debug)
+    j.uses(filtered_index, link=Link.OUTPUT, transfer=True)
     dax.addJob(j)
 
     # and then cram it to get the final output file
@@ -576,7 +576,7 @@ def filter(dax, software_tar, ref_files, wf_files, sample_id, base_fname):
         j.uses(f, link=Link.INPUT)
     j.uses(filtered_bam, link=Link.INPUT)
     j.uses(filtered_index, link=Link.INPUT)
-    j.uses(filtered_cram, link=Link.OUTPUT, transfer=True)
+    j.uses(filtered_cram, link=Link.OUTPUT, transfer=debug)
     dax.addJob(j)
 
     for i in range(1, 13):
