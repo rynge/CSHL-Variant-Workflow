@@ -747,6 +747,8 @@ def main():
         sys.exit(1)
 
     debug = options.debug
+    if debug is None:
+        debug = False
 
     # read the config file and add those settings to the option object
     conf = ConfigParser.SafeConfigParser({'username': getpass.getuser()})
