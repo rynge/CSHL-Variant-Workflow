@@ -20,7 +20,7 @@
         <profile namespace="condor" key="+ProjectName" >"IRRI"</profile>
         <profile namespace="condor" key="rank" >TimeToLive</profile>
         <profile namespace="condor" key="+wants_comet_glidein" >True</profile>
-        <profile namespace="env" key="PATH">/home/ux454281/software/irods/3.2/bin:/usr/bin:/bin</profile>
+        <profile namespace="env" key="PATH">/home/ux454281/software/irods/3.2/bin:/opt/ctss/globus/bin:/usr/bin:/bin</profile>
     </site>
     <site  handle="irods_iplant" arch="x86_64" os="LINUX">
         <directory type="local-storage" path="/iplant/home/shared/rice3k/workflow-outputs/$username">
