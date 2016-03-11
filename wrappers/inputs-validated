@@ -1,0 +1,9 @@
+#!/bin/bash
+
+set -e
+
+# this is a noop job, making sure the workflow does not continue on if
+# any of the check inputs jobs fail
+
+exit 0
+

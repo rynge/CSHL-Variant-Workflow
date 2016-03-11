@@ -18,8 +18,7 @@ if size1 < 1000:
 if size2 < 1000:
     raise Exception("File %s is too small: %d bytes" %(fname2, size2)) 
 
-
 if (size1 < size2 * .8) or (size1 > size2 * 1.2):
-    raise Exception("File %s and % are more than 20% size different" %(fname1, fname2)) 
+    raise Exception("File %s and %s are more than 20% size different" %(fname1, fname2)) 
 
 

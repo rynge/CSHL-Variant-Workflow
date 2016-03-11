@@ -300,7 +300,7 @@ def add_executable(dax, logical_name, wrapper_name):
     added_execs.append(logical_name)
   
 
-def check_inputs(read_id, dax, software_tar, ref_files, wf_files, software_job):
+def check_inputs(read_id, dax, software_tar, ref_files, wf_files, software_job, inputs_validated_job):
 
     add_executable(dax, "check-input-pair", "check-input-pair")
     j = ComputeJob("check-input-pair", cores = 1, mem_gb = 2, partition = "part1")
@@ -310,6 +310,7 @@ def check_inputs(read_id, dax, software_tar, ref_files, wf_files, software_job):
     j.addArguments(wf_files['paired_read1_fastq'], wf_files['paired_read2_fastq'])
     dax.addJob(j)
     dax.depends(parent=software_job, child=j)
+    dax.depends(parent=j, child=inputs_validated_job)
     
     # next step
     seqtk(read_id,
@@ -317,10 +318,10 @@ def check_inputs(read_id, dax, software_tar, ref_files, wf_files, software_job):
           software_tar,
           ref_files,
           wf_files,
-          j)
+          inputs_validated_job)
 
 
-def seqtk(read_id, dax, software_tar, ref_files, wf_files, check_inputs_job):
+def seqtk(read_id, dax, software_tar, ref_files, wf_files, inputs_validated_job):
 
     add_executable(dax, "seqtk", "seqtk-wrapper")
     j = ComputeJob("seqtk", cores = 1, mem_gb = 2, partition = "part1")
@@ -330,7 +331,7 @@ def seqtk(read_id, dax, software_tar, ref_files, wf_files, check_inputs_job):
     j.setStdout(wf_files['paired_read1_fastq_postseqtk'])
     j.addArguments("seq", "-VQ64", wf_files['paired_read1_fastq'])
     dax.addJob(j)
-    dax.depends(parent=check_inputs_job, child=j)
+    dax.depends(parent=inputs_validated_job, child=j)
     
     add_executable(dax, "seqtk", "seqtk-wrapper")
     j = ComputeJob("seqtk", cores = 1, mem_gb = 2, partition = "part1")
@@ -340,7 +341,7 @@ def seqtk(read_id, dax, software_tar, ref_files, wf_files, check_inputs_job):
     j.setStdout(wf_files['paired_read2_fastq_postseqtk'])
     j.addArguments("seq", "-VQ64", wf_files['paired_read2_fastq'])
     dax.addJob(j)
-    dax.depends(parent=check_inputs_job, child=j)
+    dax.depends(parent=inputs_validated_job, child=j)
 
     # next step
     alignment_to_reference(read_id,
@@ -663,6 +664,10 @@ def generate_dax():
     software_job = ComputeJob("software-wrapper", cores=1, mem_gb=1)
     software_job.uses(software_tar, link=Link.INPUT)
     dax.addJob(software_job)
+    
+    add_executable(dax, "inputs-validated", "inputs-validated")
+    inputs_validated_job = ComputeJob("inputs-validated", cores=1, mem_gb=1)
+    dax.addJob(inputs_validated_job)
 
     # we need to track files across jobs
     wf_files = {}
@@ -698,12 +703,6 @@ def generate_dax():
         wf_files['sam'] = File(conf.get("local", "run_id") + "-" + read_id + "_aligned_reads.sam")
         wf_files['sorted_reads'] = File(conf.get("local", "run_id") + "-" + read_id + "_sorted_reads.bam")
         wf_files['sorted_index'] = File(conf.get("local", "run_id") + "-" + read_id + "_sorted_reads.bai")
-        #wf_files['deduped_reads'] = File(conf.get("local", "run_id") + "-" + read_id + "_deduped_reads.bam")
-        #wf_files['deduped_index'] = File(conf.get("local", "run_id") + "-" + read_id + "_deduped_reads.bai")
-        #wf_files['deduped_metrics'] = File(conf.get("local", "run_id") + "-" + read_id + "_deduped.metrics")
-        #wf_files['intervals'] = File(conf.get("local", "run_id") + "-" + read_id + "_intervals.list")
-        #wf_files['indel_realigned_reads'] = File(conf.get("local", "run_id") + "-" + read_id + "_indel_realigned.bam")
-        #wf_files['indel_realigned_index'] = File(conf.get("local", "run_id") + "-" + read_id + "_indel_realigned.bai")
     
         # Step 1 - dependent jobs are now added in the parent jobs
         check_inputs(read_id,
@@ -711,7 +710,8 @@ def generate_dax():
                      software_tar,
                      ref_files,
                      wf_files,
-                     software_job)
+                     software_job,
+                     inputs_validated_job)
 
         # keep a list of samples for the GenotypeGVCFs call
         read_ids.append(read_id)
