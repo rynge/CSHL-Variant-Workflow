@@ -581,7 +581,7 @@ def filter(dax, software_tar, ref_files, wf_files, sample_id, base_fname):
     dax.addJob(j)
 
     for i in range(1, 13):
-        chromosome = "Chr%d" %(i)
+        chromosome = "%d" %(i)
         haplotype_caller(dax, software_tar, ref_files,
                          wf_files, sample_id, chromosome)
 
