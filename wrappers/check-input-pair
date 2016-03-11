@@ -5,6 +5,11 @@
 
 import os
 import sys
+import subprocess
+
+def backticks(cmd_line):
+    return subprocess.Popen(cmd_line, shell=True,
+                            stdout=subprocess.PIPE).communicate()[0]
 
 fname1 = sys.argv[1]
 fname2 = sys.argv[2]
@@ -18,7 +23,12 @@ if size1 < 1000:
 if size2 < 1000:
     raise Exception("File %s is too small: %d bytes" %(fname2, size2)) 
 
-if (size1 < size2 * .8) or (size1 > size2 * 1.2):
-    raise Exception("File %s and %s are more than 20% size different" %(fname1, fname2)) 
+lines1 = int(backticks("cat %s | gunzip - | egrep '^@' | wc -l" %(fname1)))
+lines2 = int(backticks("cat %s | gunzip - | egrep '^@' | wc -l" %(fname2)))
+
+print("%s has %d lines" %(fname1, lines1))
+print("%s has %d lines" %(fname2, lines2))
+if lines1 != lines2:
+    raise Exception("The number of lines differ in the files")
 
 
