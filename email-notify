@@ -22,17 +22,22 @@ echo >>$TMPFILE
 EXTRA_ARGS=""
 
 # workflow images in the start message
-if [ ! -e dax.png ]; then
-    pegasus-graphviz -o dag.dot *.dag
-    /usr/bin/dot -Tpng -odag.png dag.dot
-    if [ -e dag.png ]; then
-        EXTRA_ARGS="$EXTRA_ARGS -a dag.png"
-    fi
-
-    pegasus-graphviz -o dax.dot *.dax
-    /usr/bin/dot -Tpng -odax.png dax.dot
-    if [ -e dax.png ]; then
-        EXTRA_ARGS="$EXTRA_ARGS -a dax.png"
+if [ "X$PEGASUS_EVENT" = "Xstart" ]; then
+    DAG_FS=`du -s -b irri-0.dag | awk '{print $1;}'`
+    if [ $DAG_FS -lt 1000000 ]; then
+        if [ ! -e dax.png ]; then
+            pegasus-graphviz -o dag.dot *.dag
+            /usr/bin/dot -Tpng -odag.png dag.dot
+            if [ -e dag.png ]; then
+                EXTRA_ARGS="$EXTRA_ARGS -a dag.png"
+            fi
+        
+            pegasus-graphviz -o dax.dot *.dax
+            /usr/bin/dot -Tpng -odax.png dax.dot
+            if [ -e dax.png ]; then
+                EXTRA_ARGS="$EXTRA_ARGS -a dax.png"
+            fi
+        fi
     fi
 fi
 
