@@ -17,6 +17,11 @@ fi
 
 OUTFILE=`mktemp -t gatk-output.XXXXXXXXXX` || exit 1
 
+# make sure idx files are always "newer" than the data files
+for IDX in `ls *.idx 2>/dev/null`; do
+    touch $IDX
+done
+
 # memory depends on what subsystem we call
 OPTIONS="-Xmx7g -XX:+UseSerialGC"
 if (echo "'$@'" | grep -i "HaplotypeCaller") >/dev/null; then

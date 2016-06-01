@@ -1,0 +1,44 @@
+#!/bin/bash
+
+version="3.4.46"
+if [ ! -d software ]; then
+    tar xzf software.tar.gz
+fi
+
+if [ "x$TMPDIR_OVERRIDE" != "x" ]; then
+   export TMPDIR="$TMPDIR_OVERRIDE"
+fi
+if [ "x$TMPDIR" = "x" ]; then
+   export TMPDIR=/tmp
+fi
+if [ ! -e "$TMPDIR" ]; then
+    mkdir -p $TMPDIR
+fi
+
+OUTFILE=`mktemp -t gatk-output.XXXXXXXXXX` || exit 1
+
+# create empty index files, we will have GATK recreate them 
+#for VCF in `ls *.vcf 2>/dev/null`; do
+#    touch $VCF.idx
+#done
+#sleep 5s
+
+# make sure vcf files are always "newer" than the index files
+for VCF in `ls *.vcf 2>/dev/null`; do
+    touch $VCF
+done
+
+# memory depends on what subsystem we call
+OPTIONS="-Xmx4g -XX:+UseSerialGC"
+OPTIONS="$OPTIONS -Djava.io.tmpdir=$TMPDIR"
+
+java $OPTIONS \
+     -jar ./software/GenomeAnalysisTK-$version/GenomeAnalysisTK.jar \
+     "$@" \
+     >$OUTFILE 2>&1
+EXITCODE=$?
+
+cat $OUTFILE
+rm -f $OUTFILE
+exit $EXITCODE
+

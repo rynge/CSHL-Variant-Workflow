@@ -1,0 +1,472 @@
+#!/usr/bin/env python
+
+from AutoADAG import *
+import ConfigParser
+from Pegasus.DAX3 import *
+import getpass
+import logging
+import math
+import optparse
+import os
+import re
+import socket
+import string
+import subprocess
+import sys
+import time
+
+
+
+# to setup python lib dir for importing Pegasus PYTHON DAX API
+pegasus_config = os.path.join("pegasus-config") + " --noeoln --python"
+lib_dir = subprocess.Popen(pegasus_config,
+                           stdout=subprocess.PIPE,
+                           shell=True).communicate()[0]
+#Insert this directory in our search path
+os.sys.path.insert(0, lib_dir)
+
+
+# --- global variables ----------------------------------------------------------------
+
+logger      = logging.getLogger("my_logger")
+conf        = None
+debug       = False
+added_execs = []
+
+
+# --- classes -------------------------------------------------------------------------
+
+class ComputeJob(Job):
+    """ A Pegasus DAX Job with extra information such as cpu and memory
+    requirements, for both single and peagaus-mpi-cluster execution
+    """
+
+    def __init__(self, name, cores=1, mem_gb=2, disk_gb=50, partition="part1"):
+        Job.__init__(self, name=name)
+        
+        # label based clustering
+        self.addProfile(Profile(Namespace.PEGASUS, 
+                                key="label",
+                                value=partition))
+  
+        # standard resource requirements for all jobs
+        mem_mb = mem_gb * 1000
+        self.addProfile(Profile(Namespace.CONDOR,
+                                key="request_cpus",
+                                value=str(cores)))
+        self.addProfile(Profile(Namespace.PEGASUS,
+                                key="pmc_request_cpus",
+                                value=str(cores)))
+        self.addProfile(Profile(Namespace.CONDOR,
+                                key="request_memory",
+                                value=str(mem_mb)))
+        self.addProfile(Profile(Namespace.PEGASUS,
+                                key="pmc_request_memory",
+                                value=str(mem_mb)))
+        self.addProfile(Profile(Namespace.CONDOR,
+                                key="request_disk",
+                                value=str(disk_gb*1024*1024)))
+
+        # special sauce for TACC - we want smaller jobs to go to the normal
+        # compute nodes and the large memory ones to go to the large memory
+        # nodes
+        if re.search('stampede', conf.get("local", "exec_env")):
+            hosts = conf.get("exec_environment", "hosts_" + partition)
+            cores = str(16 * int(hosts))
+            self.addProfile(Profile(Namespace.GLOBUS,
+                                    key="queue",
+                                    value="normal"))
+            self.addProfile(Profile(Namespace.GLOBUS,
+                                    key="hostcount",
+                                    value=hosts))
+            self.addProfile(Profile(Namespace.GLOBUS,
+                                    key="count",
+                                    value=cores))
+            self.addProfile(Profile(Namespace.ENV,
+                                    key="PMC_HOST_MEMORY",
+                                    value="29000"))
+
+        # required for the Pegasus accounting
+        self.addProfile(Profile(Namespace.PEGASUS,
+                                key="cores",
+                                value=str(cores)))
+  
+
+
+# --- functions -----------------------------------------------------------------------
+
+
+def setup_logger(verbose):
+    """ Use a console logger for all output to the user """
+
+    # log to the console
+    console = logging.StreamHandler()
+
+    # default log level - make logger/console match
+    logger.setLevel(logging.INFO)
+    console.setLevel(logging.INFO)
+
+    if verbose:
+        logger.setLevel(logging.DEBUG)
+        console.setLevel(logging.DEBUG)
+
+    # formatter
+    formatter = logging.Formatter("%(asctime)s %(levelname)7s:  %(message)s")
+    console.setFormatter(formatter)
+    logger.addHandler(console)
+    logger.debug("Logger has been configured")
+
+
+def myexec(cmd_line):
+    """ Convenience function as we are shelling out a fair amount """
+    
+    sys.stdout.flush()
+    p = subprocess.Popen(cmd_line + " 2>&1", shell=True)
+    stdoutdata, stderrdata = p.communicate()
+    r = p.returncode
+    if r != 0:
+        raise RuntimeError("Command '%s' failed with error code %s" \
+                           % (cmd_line, r))
+
+        
+def generate_site_catalog():
+    """ Uses a templete file to produce the Pegasus site catalog """
+    
+    logger.info("Generating sites.catalog")
+    inf = open("conf/" + conf.get("local", "exec_env") + 
+               "/sites.catalog.template", 'r')
+    template = string.Template(inf.read())
+    inf.close()
+
+    outf = open(conf.get("local", "work_dir") + "/sites.catalog", "w")
+    outf.write(template.substitute(
+                        submit_host = socket.gethostname(),
+                        username = getpass.getuser(), 
+                        home = os.path.expanduser('~'),
+                        top_dir = conf.get("local", "top_dir"),
+                        work_dir = conf.get("local", "work_dir"),
+                        pegasus_bin = conf.get("local", "pegasus_bin"),
+                        irods_bin = conf.get("local", "irods_bin"),
+                        tacc_allocation = conf.get("tacc", "allocation"),
+                        tacc_username = conf.get("tacc", "username"),
+                        tacc_storage_group = conf.get("tacc", "storage_group"),
+              ))
+    outf.close()
+
+
+def read_input_lists(ref_urls):
+    """ The user provides a list of reference file URLs
+    """
+
+    # first the reference
+    inf = open(conf.get("local", "top_dir") + "/inputs-ref.txt", "r")
+    for line in inf.readlines():
+        line = line.rstrip('\n')
+        if line == "":
+            continue
+        ref_urls.append(line)
+    inf.close()
+
+
+def find_vcfs(base_dir, chromosome, level = 0):
+    # use the irods client to do a recursive find
+    print(" ... checking iplant dir " + base_dir)
+
+    results = []
+
+    cmd = "ils " + base_dir
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+    stdoutdata, stderrdata = p.communicate()
+    if p.returncode != 0:
+        raise RuntimeError("ils failed!")
+    for line in stdoutdata.split("\n"):
+        line = line.strip()
+        if line == "":
+            continue
+        elif line[0] == 'C':
+            # sub dir
+            meta, sub_dir = line.split(" ")
+            if re.search("wf-20150305-013900", sub_dir):
+                continue
+            results.extend(find_vcfs(sub_dir, chromosome, level + 1))
+        else:
+            # regular file, only worrky about .vcf.gz
+            if re.search("Chr" + str(chromosome) + ".vcf.gz", line) or \
+               re.search("_" + str(chromosome) + ".vcf.gz", line):
+                results.append(base_dir + "/" + line)
+    return results
+
+
+def extract_lfn(url):
+    """ determine a logical file name (basename) from a given URL """
+    return re.sub(".*/", "", url)
+
+
+def local_pfn(path):
+    """ generates a full pfn given a local path """
+    pfn = "scp://" + getpass.getuser() + "@" + socket.gethostname() + "/" + path
+    return pfn
+
+
+def extract_fasta_basefile(file_list):
+    """ find the base fasta file given a list of reference files """
+    for f in file_list:
+        if re.search("(.fa|.fasta|.con)$", f.name):
+            return f
+  
+
+def add_executable(dax, logical_name, wrapper_name):
+    """ adds executables to the DAX-level replica catalog """
+    global added_execs
+
+    if logical_name in added_execs:
+        return
+
+    base_url = local_pfn(conf.get("local", "top_dir"))    
+    
+    wrapper = Executable(name=logical_name, 
+                         arch="x86_64",
+                         installed=False)
+    wrapper.addPFN(PFN(base_url + "/wrappers/" + wrapper_name, "local"))
+    dax.addExecutable(wrapper)
+
+    added_execs.append(logical_name)
+  
+
+def combine_vcfs(dax, software_file, ref_files, tracked_files, vcfs, chromosome, subset_id):
+
+    add_executable(dax, "combine_vcfs", "gatk-combine-gvcfs-wrapper")
+    j = ComputeJob("combine_vcfs", cores = 1, mem_gb = 5)
+
+    # outputs
+    fname = "chr" + str(chromosome) + "-" + str(subset_id) + ".vcf.gz"
+    tracked_files[fname] = File(fname)
+    j.uses(tracked_files[fname], link=Link.OUTPUT, transfer=True)
+    tbiname = fname + ".tbi"
+    tracked_files[tbiname] = File(tbiname)
+    j.uses(tracked_files[tbiname], link=Link.OUTPUT, transfer=True)
+
+    # inputs
+    j.uses(software_file, link=Link.INPUT)
+    for f in ref_files:
+        j.uses(f, link=Link.INPUT)
+    
+    j.addArguments("-T", "CombineGVCFs",
+                   "-R", extract_fasta_basefile(ref_files),
+                   "-o", tracked_files[fname])
+
+    for vcf_path in vcfs:
+        vcf_name = re.sub(r'.*/', '', vcf_path)
+
+        vcf_file = File(vcf_name)
+        vcf_file.addPFN(PFN("irods://" + vcf_path, "irods_iplant"))
+        dax.addFile(vcf_file)
+
+        # but we need the vcf file to be unzipped
+        vcf_unzipped_file = File(re.sub(r'\.gz', '', vcf_name))
+        add_executable(dax, "gunzipnorm", "gunzip-and-norm-wrapper")
+        jgz = ComputeJob("gunzipnorm", cores = 1, mem_gb = 1)
+        jgz.addArguments(vcf_file, vcf_unzipped_file)
+        jgz.uses(vcf_file, link=Link.INPUT)
+        jgz.uses(vcf_unzipped_file, link=Link.OUTPUT, transfer=False)
+        dax.addJob(jgz)
+
+        j.uses(vcf_unzipped_file, link=Link.INPUT)
+
+        j.addArguments("-V", vcf_unzipped_file)
+
+    dax.addJob(j)
+
+
+def genotype_gvcfs(dax, software_file, ref_files, tracked_files, chromosome, num_subsets):
+
+    add_executable(dax, "genotype_gvcfs", "gatk-wrapper")
+    j = ComputeJob("genotype_gvcfs", cores = 1, mem_gb = 11, disk_gb=250)
+    
+    # outputs
+    fname = "chr" + str(chromosome) + ".vcf.gz"
+    tracked_files[fname] = File(fname)
+    j.uses(tracked_files[fname], link=Link.OUTPUT, transfer=True)
+    tbiname = fname + ".tbi"
+    tracked_files[tbiname] = File(tbiname)
+    j.uses(tracked_files[tbiname], link=Link.OUTPUT, transfer=True)
+    
+    # inputs
+    j.uses(software_file, link=Link.INPUT)
+    for f in ref_files:
+        j.uses(f, link=Link.INPUT)
+
+    j.addArguments("-T", "GenotypeGVCFs",
+                   "-R", extract_fasta_basefile(ref_files),
+                   "-o", tracked_files[fname])
+    for i in range(1, num_subsets +1):
+        fname = "chr" + str(chromosome) + "-" + str(i) + ".vcf.gz"
+        tbiname = fname + ".tbi"
+        j.uses(tracked_files[fname], link=Link.INPUT)
+        j.uses(tracked_files[tbiname], link=Link.INPUT)
+        j.addArguments("-V", tracked_files[fname])
+
+    dax.addJob(j)
+
+
+def generate_dax():
+    """ generates the Pegasus DAX (directed acyclic graph - abstract XML)
+    which is a description of a workflow """
+    
+    logger.info("Generating abstract workflow (DAX)")
+    
+    dax = AutoADAG("irri")
+    
+    # The key to adding jobs to this workflow is the AutoADAG - it allows you
+    # to add jobs with listed input and output files, and then the AutoADAG
+    # will figure out the relationships between the jobs. There is no need
+    # to list parent/child relationships, but you can do that if you feel it
+    # makes the relationships more clear than just specifying the
+    # inputs/outputs.
+        
+    # email notificiations for when the state of the workflow changes
+    dax.invoke('all', conf.get("local", "top_dir") + "/email-notify")
+
+    ref_urls = []
+    read_input_lists(ref_urls)
+    
+    # we need to track files across jobs
+    tracked_files = {}
+    
+    # we need to bring a copy of the software with us
+    software_tar = File("software.tar.gz")
+    software_tar.addPFN(PFN(local_pfn(conf.get("local", "work_dir") + "/software.tar.gz"), "local"))
+    dax.addFile(software_tar)    
+    add_executable(dax, "software-wrapper", "software-wrapper")
+    software_job = ComputeJob("software-wrapper", cores=1, mem_gb=1)
+    software_job.uses(software_tar, link=Link.INPUT)
+    dax.addJob(software_job)
+    
+    # reference genome    
+    ref_files = []
+    for url in ref_urls:
+        f = File(extract_lfn(url))
+        f.addPFN(PFN(url, "irods_iplant"))
+        dax.addFile(f)
+        # put these in a list so jobs can pick them up
+        ref_files.append(f)
+
+    # find all vcfs for the chromosome
+    chromosome = 4
+    vcfs = find_vcfs("/iplant/home/shared/rice3k/workflow-outputs/lwang", chromosome)
+    print("Found " + str(len(vcfs)) + " VCFs for chromosome " + str(chromosome))
+
+    subset_count = 0
+    n = 100
+    for subset in [vcfs[i:i+n] for i in range(0, len(vcfs), n)]:
+        subset_count += 1
+        combine_vcfs(dax, software_tar, ref_files, tracked_files, subset, chromosome, subset_count)
+
+    genotype_gvcfs(dax, software_tar, ref_files, tracked_files, chromosome, subset_count)
+
+    # write out the dax
+    dax_file = open(conf.get("local", "work_dir") + "/irri.dax", "w")
+    dax.writeXML(dax_file)
+    dax_file.close()
+
+
+def main():
+    global conf
+    global debug
+    
+    setup_logger(False)
+
+    # Configure command line option parser
+    prog_usage = "usage: combine-workflow-generator [options]"
+    parser = optparse.OptionParser(usage=prog_usage)
+
+    parser.add_option("-e", "--exec-env", action = "store", dest = "exec_env",
+                      help = "Handle for the target execution environment.")
+    parser.add_option("-d", "--debug", action = "store_true", dest = "debug",
+                      help = "Run the workflow in debug mode. Intermediate products will be staged to output site.")
+
+    # Parse command line options
+    (options, args) = parser.parse_args()
+    if options.exec_env == None:
+        logger.fatal("Please specify an execution environment with --exec-env")
+        sys.exit(1)
+
+    debug = options.debug
+    if debug is None:
+        debug = False
+
+    # read the config file and add those settings to the option object
+    conf = ConfigParser.SafeConfigParser({'username': getpass.getuser()})
+    r = conf.read([os.environ['HOME'] + "/.irri-workflow.conf", \
+                   "conf/%s/site.conf" % options.exec_env])
+    if len(r) != 2:
+        logger.fatal("Unable to read configuration files for that environment")
+        sys.exit(1)
+
+    conf.set("local", "username", getpass.getuser())
+    conf.set("local", "exec_env", options.exec_env)
+    conf.set("local", "top_dir", os.path.dirname(os.path.realpath( __file__ )))
+
+    # run id
+    conf.set("local", "run_id", time.strftime("%Y%m%d-%H%M%S", time.gmtime()))
+
+    # add the run id to the work dir
+    conf.set("local", "work_dir", conf.get("local", "work_dir") + "/" + 
+                                  conf.get("local", "run_id"))
+    
+    # local Pegasus environment
+    pegasus_config = os.path.join("pegasus-config") + " --noeoln --bin"
+    pegasus_bin_dir = subprocess.Popen(pegasus_config,
+                                       stdout=subprocess.PIPE,
+                                       shell=True).communicate()[0]
+    conf.set("local", "pegasus_bin", pegasus_bin_dir)
+
+    # create a local work directory for the workflow
+    logger.info("Setting up work directory at %s" \
+                %(conf.get("local", "work_dir")))
+    if os.path.exists(conf.get("local", "work_dir")):
+        logger.fatal("Work directory already exists") 
+        os.exit(1)
+    os.makedirs(conf.get("local", "work_dir"))
+
+    generate_site_catalog()
+
+    # FIXME: what should we copy / keep in the top dir?
+    myexec("cp software.tar.gz " + \
+            conf.get("local", "work_dir") + "/software.tar.gz")
+    myexec("cp conf/" + conf.get("local", "exec_env") + 
+           "/transformations.catalog " + 
+           conf.get("local", "work_dir") + "/transformations.catalog")
+    myexec("cp conf/" + conf.get("local", "exec_env") + 
+           "/replica.catalog " + 
+           conf.get("local", "work_dir") + "/replica.catalog")
+
+    generate_dax()
+
+    # submit
+    logger.info("Planning workflow...")
+    os.chdir(conf.get("local", "work_dir"))
+    cmd = "pegasus-plan" + \
+          " --conf " + conf.get("local", "top_dir") + \
+          "/conf/" + conf.get("local", "exec_env") + "/pegasus.conf" + \
+          " --dir ." + \
+          " --relative-dir wf-" + conf.get("local", "run_id") + \
+          " --sites execution"
+    
+    if conf.get("exec_environment", "output_site") != "":
+        cmd += " --output-site " + conf.get("exec_environment", "output_site")
+              
+    if conf.get("exec_environment", "staging_site") != "":
+        cmd += " --staging " + conf.get("exec_environment", "staging_site")
+          
+    if conf.get("exec_environment", "job_clustering") != "":
+        cmd += " --cluster " + conf.get("exec_environment", "job_clustering")
+          
+    cmd += " --dax irri.dax"
+    logger.info(cmd)
+    myexec(cmd + " 2>&1 | tee pegasus-plan.out")
+
+
+if __name__ == "__main__":
+    main()
+

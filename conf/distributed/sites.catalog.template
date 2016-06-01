@@ -14,7 +14,7 @@
         <profile namespace="pegasus" key="style" >condor</profile>
         <profile namespace="condor" key="universe" >vanilla</profile>
         <!--profile namespace="condor" key="requirements" >UidDomain == "workflow.isi.edu" || UidDomain == "pegasus.isi.edu"</profile-->
-        <profile namespace="condor" key="requirements" >isUndefined(GLIDEIN_Entry_Name) &amp;&amp; (regexp("tacc.utexas.edu", TARGET.Machine) != True)</profile>
+        <profile namespace="condor" key="requirements" >(isUndefined(GLIDEIN_Entry_Name) || GLIDEIN_ResourceName =?= "ISI" || GLIDEIN_ResourceName =?= "ISI_Azure") &amp;&amp; (regexp("tacc.utexas.edu", TARGET.Machine) != True)</profile>
         <profile namespace="condor" key="+ProjectName" >"IRRI"</profile>
         <profile namespace="env" key="PATH">$irods_bin:/usr/bin:/bin</profile>
     </site>
@@ -25,13 +25,13 @@
         <profile namespace="pegasus" key="irodsEnvFile" >$home/irods.iplant.env</profile>
     </site>
     <site  handle="isi_workflow" arch="x86_64" os="LINUX">
-        <directory type="shared-scratch" path="/local-scratch/http/$username/irri/scratch">
-            <file-server operation="get" url="http://workflow.isi.edu/scratch/$username/irri/scratch"/>
-            <file-server operation="put" url="scp://$username@workflow.isi.edu/local-scratch/http/$username/irri/scratch"/>
+        <directory type="shared-scratch" path="/nfs/ccg4/scratch-purge-no-backups/workflow.isi.edu/scratch2/$username/irri/scratch">
+            <file-server operation="get" url="http://workflow.isi.edu/scratch2/$username/irri/scratch"/>
+            <file-server operation="put" url="scp://$username@workflow.isi.edu/nfs/ccg4/scratch-purge-no-backups/workflow.isi.edu/scratch2/$username/irri/scratch"/>
         </directory>
-        <directory type="local-storage" path="/local-scratch/http/$username/irri/outputs">
-            <file-server operation="get" url="http://workflow.isi.edu/scratch/$username/irri/outputs"/>
-            <file-server operation="put" url="scp://$username@workflow.isi.edu/local-scratch/http/$username/irri/outputs"/>
+        <directory type="local-storage" path="/nfs/ccg4/scratch-purge-no-backups/workflow.isi.edu/scratch2/$username/irri/outputs">
+            <file-server operation="get" url="http://workflow.isi.edu/scratch2/$username/irri/outputs"/>
+            <file-server operation="put" url="scp://$username@workflow.isi.edu/nfs/ccg4/scratch-purge-no-backups/workflow.isi.edu/scratch2/$username/irri/outputs"/>
         </directory>
 	    <profile namespace="pegasus" key="SSH_PRIVATE_KEY">$home/.ssh/workflow</profile>
     </site>
